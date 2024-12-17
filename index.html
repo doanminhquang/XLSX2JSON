@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Đọc Excel và chuyển đổi thành JSON</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f4f4f9;
+			margin: 0;
+			padding: 0;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+		}
+		
+		.container {
+			background-color: white;
+			border-radius: 8px;
+			padding: 20px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			width: 80%;
+			max-width: 800px;
+		}
+		
+		h1 {
+			text-align: center;
+			color: #333;
+		}
+		
+		h3 {
+			color: #444;
+			font-size: 1.2em;
+		}
+		
+		input[type="file"] {
+			display: inline-block;
+			padding: 8px 12px;
+			margin: 10px 0;
+			background-color: #4CAF50;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			width: 77%;
+		}
+		
+		input[type="file"]:hover {
+			background-color: #45a049;
+		}
+		
+		button {
+			background-color: #007bff;
+			color: white;
+			padding: 10px 20px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			margin: 10px 0;
+			transition: background-color 0.3s;
+		}
+		
+		button:hover {
+			background-color: #0056b3;
+		}
+		
+		select {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #ccc;
+			width: 100%;
+			margin-bottom: 20px;
+		}
+		
+		select:focus {
+			outline: none;
+		}
+		
+		textarea {
+			width: 97%;
+			height: 200px;
+			padding: 10px;
+			font-size: 1em;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			resize: none;
+			margin-bottom: 20px;
+			background-color: #f9f9f9;
+		}
+		
+		textarea:focus {
+			outline: none;
+		}
+		
+		#copy-button {
+			background-color: #28a745;
+			margin-top: 10px;
+		}
+		
+		#copy-button:hover {
+			background-color: #218838;
+		}
+		
+		.alert {
+			color: #d9534f;
+			font-weight: bold;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Chuyển đổi file Excel thành JSON</h1>
+		<input type="file" id="excel-file" onchange="loadFile()" />
+		<button onclick="readExcelFile()">Chuyển đổi dữ liệu</button>
+		<h3>Chọn trang tính:</h3>
+		<select id="sheet-select"> </select>
+		<h3>Kết quả chuyển đổi:</h3>
+		<textarea id="json-output" rows="10" cols="50"></textarea>
+		<button id="copy-button" onclick="copyToClipboard()">Copy</button>
+	</div>
+</body>
+<script>
+	let workbook = null;
+
+	function loadFile() {
+		const fileInput = document.getElementById('excel-file');
+		const sheetSelect = document.getElementById('sheet-select');
+		const jsonOutput = document.getElementById('json-output');
+		if(fileInput.files.length === 0) {
+			alert('Vui lòng chọn một file Excel');
+			return;
+		}
+		const file = fileInput.files[0];
+		const reader = new FileReader();
+		reader.onload = function(e) {
+			const data = e.target.result;
+			workbook = XLSX.read(data, {
+				type: 'binary'
+			});
+			sheetSelect.innerHTML = '';
+			workbook.SheetNames.forEach(function(sheetName, index) {
+				const option = document.createElement('option');
+				option.value = index;
+				option.textContent = sheetName;
+				sheetSelect.appendChild(option);
+			});
+			if(workbook.SheetNames.length > 0) {
+				sheetSelect.selectedIndex = 0;
+				loadSheetData(0);
+			}
+		};
+		reader.readAsBinaryString(file);
+	}
+
+	function loadSheetData(sheetIndex) {
+		const sheetSelect = document.getElementById('sheet-select');
+		const jsonOutput = document.getElementById('json-output');
+		if(workbook && workbook.SheetNames.length > 0) {
+			const sheetName = workbook.SheetNames[sheetIndex];
+			const sheet = workbook.Sheets[sheetName];
+			const jsonData = XLSX.utils.sheet_to_json(sheet);
+			jsonOutput.value = JSON.stringify(jsonData, null, 2);
+		}
+	}
+	document.getElementById('sheet-select').addEventListener('change', function() {
+		const sheetSelect = document.getElementById('sheet-select');
+		const selectedSheetIndex = sheetSelect.value;
+		loadSheetData(selectedSheetIndex);
+	});
+
+	function copyToClipboard() {
+		const jsonOutput = document.getElementById('json-output');
+		const text = jsonOutput.value;
+		if(text) {
+			navigator.clipboard.writeText(text).then(function() {
+				alert("Đã sao chép nội dung JSON vào clipboard!");
+			}).catch(function(err) {
+				console.error("Không thể sao chép: ", err);
+			});
+		} else {
+			alert("Không có dữ liệu JSON để sao chép!");
+		}
+	}
+</script>
+</html>
